@@ -13,13 +13,18 @@ import android.text.TextUtils
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
+import com.chinmay.coroutinedemo.R
+import com.chinmay.coroutinedemo.utils.UploadRequestBody
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.*
 import java.util.*
 
-class ImgurWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+class ImgurWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params),
+    UploadRequestBody.UploadCallback {
     var TAG = this.javaClass.simpleName
     private val MEDIA_TYPE_PNG = "image/png".toMediaTypeOrNull()
     private val notificationManager =
@@ -43,11 +48,12 @@ class ImgurWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
 
 
             val imageFile = File(newImageUri.path)
-            val requestFile = imageFile.asRequestBody(MEDIA_TYPE_PNG)
+//            val requestBody = imageFile.asRequestBody(MEDIA_TYPE_PNG)
+            val requestBody = UploadRequestBody(imageFile, "image", this)
 
 
             val imgurApiService = RetrofitBuilder.imgurApiService
-            val body = MultipartBody.Part.createFormData("image", "image.png", requestFile)
+            val body = MultipartBody.Part.createFormData("image", "image.png", requestBody)
             val postImage = imgurApiService.postImage(body)
             var imageUrlAfterUpload = postImage.data.link
             return Result.success(workDataOf("imageUrl" to imageUrlAfterUpload))
@@ -148,6 +154,15 @@ class ImgurWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         ).also { channel ->
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    override fun onProgressUpdate(percentage: Int) {
+        Log.d(TAG, percentage.toString())
+
+        CoroutineScope(Dispatchers.Default).launch {
+            setProgress(workDataOf("Progress" to percentage))
+        }
+
     }
 
 }

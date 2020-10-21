@@ -43,6 +43,8 @@ class ImgurActivity : AppCompatActivity() {
         val handler = CoroutineExceptionHandler { _, exception ->
             println("Exception thrown in one of the children: $exception")
         }
+        var randomUid = UUID.randomUUID().toString()
+        Log.d(TAG, randomUid)
         binding.selectimageButton.setOnClickListener {
             if (checkPermisson()) {
                 getImageUriFromStorage()
@@ -78,15 +80,29 @@ class ImgurActivity : AppCompatActivity() {
         val observer = Observer<List<WorkInfo>> { workInfoList ->
             workInfoList.forEach { workInfo ->
                 when (workInfo.state) {
-                    WorkInfo.State.RUNNING -> binding.textView4.append("\nRUNNING\n")
+                    WorkInfo.State.RUNNING -> {
+                        binding.textView4.append("\nRUNNING\n")
+                        val progress = workInfo.progress
+                        val value = progress.getInt("Progress", 0)
+                        binding.progressUpdateTextView.text = value.toString()
+                        binding.progressBar.progress = value
+
+
+                    }
                     WorkInfo.State.ENQUEUED -> binding.textView4.append("\nENQUEUED\n")
-                    WorkInfo.State.SUCCEEDED -> binding.textView4.append(
-                        "\nSUCCEEDED\n ${
-                            workInfo.outputData.getString(
-                                "imageUrl"
-                            )
-                        }"
-                    )
+                    WorkInfo.State.SUCCEEDED -> {
+                        binding.textView4.append(
+                            "\nSUCCEEDED\n ${
+                                workInfo.outputData.getString(
+                                    "imageUrl"
+                                )
+                            }"
+                        )
+
+                        binding.progressBar.progress = 100
+                        binding.progressUpdateTextView.text = "100"
+
+                    }
                     WorkInfo.State.FAILED -> binding.textView4.append("\nFAILED\n")
                     WorkInfo.State.BLOCKED -> binding.textView4.append("\nBLOCKED\n")
                     WorkInfo.State.CANCELLED -> binding.textView4.append("\nCANCELLED\n")
